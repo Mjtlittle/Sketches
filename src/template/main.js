@@ -3,7 +3,7 @@ let params = {
 }
 
 function setup() {
-    createCanvas(windowWidth, windowHeight, WEBGL);
+    createCanvas(windowWidth, windowHeight);
 
     panel = QuickSettings.create(20,20,'template')
         .bindRange('angle', 0, 360*2, 0, 1, params)
@@ -12,7 +12,7 @@ function setup() {
 function draw() {
     clear();
     rotate(radians(params.angle));
-    rect(-100,-100,200,200);
+    rect(width/2 - 100, height/2 - 100, 200, 200);
 }
 
 function windowResized() {
