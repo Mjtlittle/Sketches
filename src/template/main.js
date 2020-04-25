@@ -1,12 +1,10 @@
-let params = {
-    angle: 0,
-}
+let angle = 0;
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
 
-    panel = QuickSettings.create(20,20,'template')
-        .bindRange('angle', 0, 360*2, 0, 1, params)
+    panel = QuickSettings.create(20,20,'TEMPLATE_NAME')
+        .addRange('angle', 0, 360, v, 1, v => {angle = v;})
 }
 
 function draw() {
