@@ -62,12 +62,12 @@ function setup() {
     camera.hide();
 
     settings = QuickSettings.create(20,20,'Rolling Shutter')
-        .addRange('Frame Rate (fps)', 0.02, 1, shutter_fps, 0.01, v => {shutter_fps = v;})
+        .addRange('Frame Rate [fps]', 0.02, 1, shutter_fps, 0.01, v => {shutter_fps = v;})
         .addBoolean('Preview', show_preview, v => {show_preview = v;})
         .addBoolean(PAUSE_LABEL, paused, set_pause)
         .addBoolean('Stop After Capture', stop_after_captured, v => {stop_after_captured = v;})
-        .addButton('Download Capture', download_capture)
-        .addButton('Reset (Spacebar)', reset_capture)
+        .addButton('Download Capture (shift)', download_capture)
+        .addButton('Reset (spacebar)', reset_capture)
 
     update_viewport();
     reset_capture();
@@ -200,6 +200,10 @@ function keyPressed() {
     // toggle pause with enter
     } else if (keyCode == 13) {
         toggle_pause();
+
+    // shift to download current capture
+    } else if (keyCode == 16) {
+        download_capture();
     }
 }
 
