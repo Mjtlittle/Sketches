@@ -1,26 +1,33 @@
 let camera;
-let frame_buffer = [];
-
-let src_width = 320;
-let src_height = 240;
 let image_comp;
+
+let frame_buffer = [];
+let shutter_fps = 0.3;
+let slices;
+
+let src_width = 640;
+let src_height = 480;
 let ratio;
-
-let slices = src_height;
-
-let settings;
-let show_preview = true;
-let preview_scale = 0.3;
-let shutter_fps = 0.5;
-let paused = false;
-let stop_after_captured = false;
-
-let padding = 100;
-
 let target_width;
 let target_height;
 
+let padding = 0;
+
+let settings;
+let paused = false;
+let stop_after_captured = false;
+const PAUSE_LABEL = 'Paused (toggle with enter)';
+
+let show_preview = true;
+let preview_scale = 0.3;
+
 function update_viewport() {
+    src_width = camera.width;
+    src_height = camera.height;
+
+    slices = src_height;
+    ratio = src_width / src_height;
+
     let min_dimension = min(width, height) - padding;
 
     if (src_width < src_height) {
@@ -38,17 +45,26 @@ function update_viewport() {
 }
 
 function setup() {
-    createCanvas(windowWidth, windowHeight);
+    createCanvas(windowWidth, windowHeight, WEBGL);
 
-    camera = createCapture(VIDEO);
-    camera.size(src_width, src_height);
+    camera = createCapture({
+        video: {
+          mandatory: {
+            minWidth: 320,
+            minHeight: 240
+          },
+          optional: [{ maxFrameRate: 60 }]
+        },
+        audio: false
+    }, () => {
+        update_viewport();
+    });
     camera.hide();
-    ratio = src_width / src_height;
 
     settings = QuickSettings.create(20,20,'Rolling Shutter')
         .addRange('Frame Rate (fps)', 0.02, 1, shutter_fps, 0.01, v => {shutter_fps = v;})
         .addBoolean('Preview', show_preview, v => {show_preview = v;})
-        .addBoolean('Paused', paused, set_pause)
+        .addBoolean(PAUSE_LABEL, paused, set_pause)
         .addBoolean('Stop After Capture', stop_after_captured, v => {stop_after_captured = v;})
         .addButton('Download Capture', download_capture)
         .addButton('Reset (Spacebar)', reset_capture)
@@ -60,12 +76,17 @@ function setup() {
 
 function reset_capture() {
     frame_buffer = [];
-    settings.setValue('Paused', false);
+    settings.setValue(PAUSE_LABEL, false);
+}
+
+function toggle_pause() {
+    settings.setValue(PAUSE_LABEL, !paused);
 }
 
 function download_capture() {
-    
-    save(image_comp, 'rolling_shutter_capture')
+    let now = new Date();
+
+    save(image_comp, 'rolling_shutter_'+now.getDate())
 }
 
 function set_pause(value) {
@@ -95,7 +116,7 @@ function add_frame_to_buffer() {
 
     // pause if the capture filled the buffer
     if (stop_after_captured && (frame_buffer.length >= slices))
-        settings.setValue('Paused', true);
+        settings.setValue(PAUSE_LABEL, true);
 }
 
 function add_frame_to_buffer_loop() {
@@ -121,31 +142,45 @@ function draw_frame_buffer(x, y, w, h) {
     image(image_comp, x, y);
 }
 
+function draw_frame_rect(x, y, w, h) {
+    fill(50);
+    // stroke(150);
+    // strokeJoin(ROUND);
+    // strokeCap(ROUND);
+    // strokeWeight(7);
+    noStroke();
+    rect(x,y,w,h);
+}
+
 function draw() {
     background(0);
-    
+    translate(-width/2, -height/2, 0);
+
     let tx = (width / 2) - (target_width / 2);
     let ty = (height / 2) - (target_height / 2);
     let tw = target_width;
     let th = target_height;
 
     // draw frame
-    fill(50);
-    noStroke();
-    rect(tx, ty, tw, th);
+    draw_frame_rect(tx, ty, tw, th);
 
-    // draw to screen
+    // draw rolling shutter render
     draw_frame_buffer(tx, ty, tw, th);
 
     if (show_preview){
-        
+
         tw *= preview_scale;
         th *= preview_scale;
         tx += target_width - tw + 30;
         ty -= 30;
 
+        // draw preview frame
+        draw_frame_rect(tx,ty,tw,th)
+
+        // draw camera preview
         image(camera, tx, ty, tw, th)
 
+        // draw preview scan line
         if (!paused) {
             let oy = th / slices * frame_buffer.length;
             
@@ -161,6 +196,10 @@ function keyPressed() {
     // space bar to rest capture and start again
     if (keyCode == 32) {
         reset_capture();
+    
+    // toggle pause with enter
+    } else if (keyCode == 13) {
+        toggle_pause();
     }
 }
 
