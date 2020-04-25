@@ -3,7 +3,6 @@ let image_comp;
 
 let frame_buffer = [];
 let shutter_fps = 0.3;
-let slices;
 
 let src_width = 640;
 let src_height = 480;
@@ -18,6 +17,22 @@ let paused = false;
 let stop_after_captured = false;
 const PAUSE_LABEL = 'Paused (toggle with enter)';
 
+const CAPTURE_MODE_LABEL = 'Capture Direction';
+const CaptureMode = {
+    TopToBottom: 'Top to Bottom',
+    BottomToTop: 'Bottom to Top',
+    LeftToRight: 'Left to Right',
+    RightToLeft: 'Right to Left',
+}
+let all_capture_modes = [
+    CaptureMode.TopToBottom,
+    CaptureMode.BottomToTop,
+    CaptureMode.LeftToRight,
+    CaptureMode.RightToLeft,
+];
+let capture_mode;
+let slices;
+
 let show_preview = true;
 let preview_scale = 0.3;
 
@@ -25,7 +40,6 @@ function update_viewport() {
     src_width = camera.width;
     src_height = camera.height;
 
-    slices = src_height;
     ratio = src_width / src_height;
 
     let min_dimension = min(width, height) - padding;
@@ -62,6 +76,7 @@ function setup() {
     camera.hide();
 
     settings = QuickSettings.create(20,20,'Rolling Shutter')
+        .addDropDown(CAPTURE_MODE_LABEL, all_capture_modes, v => {set_capture_mode(v.value);})
         .addRange('Frame Rate [fps]', 0.02, 1, shutter_fps, 0.01, v => {shutter_fps = v;})
         .addBoolean('Preview', show_preview, v => {show_preview = v;})
         .addBoolean(PAUSE_LABEL, paused, set_pause)
@@ -69,9 +84,25 @@ function setup() {
         .addButton('Download Capture (shift)', download_capture)
         .addButton('Reset (spacebar)', reset_capture)
 
+    set_capture_mode(all_capture_modes[0]);
+
     update_viewport();
     reset_capture();
     add_frame_to_buffer_loop();
+}
+
+function is_capture_vertical() {
+    return (capture_mode == CaptureMode.TopToBottom || 
+        capture_mode == CaptureMode.BottomToTop)
+}
+
+function set_capture_mode(mode) {
+    capture_mode = mode;
+    if (is_capture_vertical()) {
+        slices = src_height;
+    } else {
+        slices = src_width;
+    }
 }
 
 function reset_capture() {
@@ -129,12 +160,48 @@ function add_frame_to_buffer_loop() {
 
 function render_frame_buffer(w, h) {
 
-    let slice_height = h / slices;
-    
+    let len = frame_buffer.length;
     image_comp.clear();
-    frame_buffer.forEach((frame, i) => {
-        image_comp.image(frame, 0, (i * slice_height), w, slice_height, 0, i, src_width, 1);
-    });
+    
+    // vertical rendering
+    if (is_capture_vertical()) {
+        
+        let slice_height = h / slices;
+        
+        // function to help with drawing slices
+        function render_horizontal_slice(frame, index) {
+            image_comp.image(frame, 0, (index * slice_height), w, slice_height, 0, index, src_width, 1);
+        }
+        
+        // draw each slice
+        frame_buffer.forEach((frame, i) => {
+            if (capture_mode == CaptureMode.TopToBottom) {
+                render_horizontal_slice(frame, i);
+            } else {
+                render_horizontal_slice(frame, (slices - i - 1));
+            }
+        });
+        
+    // horizontal rendering
+    } else {
+    
+        let slice_width = w / slices;
+
+        // function to help with drawing slices
+        function render_vertical_slice(frame, index) {
+            image_comp.image(frame, (index * slice_width), 0, slice_width, h, index, 0, 1, src_height);
+        }
+        
+        // draw each slice
+        frame_buffer.forEach((frame, i) => {
+            if (capture_mode == CaptureMode.LeftToRight) {
+                render_vertical_slice(frame, i);
+            } else {
+                render_vertical_slice(frame, (slices - i - 1));
+            }
+        });
+    }
+
 }
 
 function draw_frame_buffer(x, y, w, h) {
@@ -182,11 +249,29 @@ function draw() {
 
         // draw preview scan line
         if (!paused) {
-            let oy = th / slices * frame_buffer.length;
             
             stroke(255,0,0);
             strokeWeight(2);
-            line(tx, ty + oy, tx + tw, ty + oy);
+            if (is_capture_vertical()) {
+                
+                let oy;
+                if (capture_mode == CaptureMode.TopToBottom)
+                    oy = th / slices * frame_buffer.length;
+                else
+                    oy = th - (th / slices * frame_buffer.length);
+                
+                line(tx, ty + oy, tx + tw, ty + oy);
+            } else {
+                
+                let ox;
+                if (capture_mode == CaptureMode.LeftToRight)
+                    ox = tw / slices * frame_buffer.length;
+                else
+                    ox = tw - (tw / slices * frame_buffer.length);
+
+                line(tx + ox, ty, tx + ox, ty + th);
+
+            }
         }
     }
 }
