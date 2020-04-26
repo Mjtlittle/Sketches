@@ -15,7 +15,7 @@ function setup() {
         .addRange('Delta Angle', 0, 360, delta_angle, 0.1, v => {delta_angle = v;})
         .addRange('Nested Circles', 2, 10, N, 1, v => {N = v;})
         .addRange('Recursion Depth', 0, 10, depth, 1, v => {depth = v;})
-        .addBoolean('Add Circle', recur_center, v => {recur_center = v;})
+        .addBoolean('Add Center Circle', recur_center, v => {recur_center = v;})
         .addBoolean('Draw Lines', show_lines, v => {show_lines = v;})
         .addDropDown('Style', [
             'Translucent',
