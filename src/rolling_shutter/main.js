@@ -10,7 +10,7 @@ let ratio;
 let target_width;
 let target_height;
 
-let padding = 0;
+let viewport_scale = 0.9;
 
 let settings;
 let paused = false;
@@ -40,17 +40,10 @@ function update_viewport() {
     src_width = camera.width;
     src_height = camera.height;
 
-    ratio = src_width / src_height;
+    let ratio = min(width / src_width, height / src_height) * viewport_scale;
 
-    let min_dimension = min(width, height) - padding;
-
-    if (src_width < src_height) {
-        target_height = min_dimension;
-        target_width = ratio * target_height;
-    } else {
-        target_width = min_dimension;
-        target_height = target_width / ratio;
-    }
+    target_width = src_width * ratio;
+    target_height = src_height * ratio;
 
     if (image_comp != null)
         image_comp.resizeCanvas(target_width, target_height);
@@ -77,8 +70,8 @@ function setup() {
 
     settings = QuickSettings.create(20,20,'Rolling Shutter')
         .addDropDown(CAPTURE_MODE_LABEL, all_capture_modes, v => {set_capture_mode(v.value);})
+        .addBoolean('Live Preview', show_preview, v => {show_preview = v;})
         .addRange('Frame Rate [fps]', 0.02, 1, shutter_fps, 0.01, v => {shutter_fps = v;})
-        .addBoolean('Preview', show_preview, v => {show_preview = v;})
         .addBoolean(PAUSE_LABEL, paused, set_pause)
         .addBoolean('Stop After Capture', stop_after_captured, v => {stop_after_captured = v;})
         .addButton('Download Capture (shift)', download_capture)
