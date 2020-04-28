@@ -6,11 +6,10 @@ let shutter_fps = 0.3;
 
 let src_width = 640;
 let src_height = 480;
-let ratio;
 let target_width;
 let target_height;
 
-let viewport_scale = 0.9;
+const viewport_scale = 0.9;
 
 let settings;
 let paused = false;
