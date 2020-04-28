@@ -10,6 +10,8 @@ const padding_acceleration = 2;
 const trail_size = 25;
 const trail_segment_length = 10;
 
+const PAUSED_LABEL = 'Paused (space)'
+
 let boids;
 
 let cohesion = 0.5;
@@ -135,7 +137,7 @@ function setup() {
         .addRange('Separation', 0, 1, separation, 0.01, v => {separation = v;})
         .addRange('Alignment', 0, 1, alignment, 0.01, v => {alignment = v;})
         
-        .addBoolean('Paused', paused, v => {paused = v;})
+        .addBoolean(PAUSED_LABEL, paused, v => {paused = v;})
         .addBoolean('Show Trails', show_trails, v => {show_trails = v;})
 
         .addRange('Size', 5, 20, boid_size, 0.01, v => {boid_size = v;})
@@ -310,6 +312,13 @@ function mouseClicked(event) {
         return;
 
     boids.push(new Boid(mouseX, mouseY));
+}
+
+function keyPressed() {
+    
+    // space to toggle the paused state
+    if (keyCode == 32)
+        panel.setValue(PAUSED_LABEL, !paused)
 }
 
 function draw() {
