@@ -1,4 +1,4 @@
-//todo Window.screenX" add window drag to add velocity
+// referenced: http://www.kfish.org/boids/pseudocode.html
 
 const cohesion_coef = 0.005;
 const separation_coef = 0.025;
@@ -10,9 +10,17 @@ const padding_acceleration = 2;
 const trail_size = 25;
 const trail_segment_length = 10;
 
-const PAUSED_LABEL = 'Paused (space)'
+const PAUSED_LABEL = 'Paused (space)';
+
+const window_force_coef = 0.1;
+const starting_boid_count = 100;
 
 let boids;
+
+let last_window_x;
+let last_window_y;
+let window_vx = 0;
+let window_vy = 0;
 
 let cohesion = 0.5;
 let separation = 0.5;
@@ -23,11 +31,13 @@ let boid_size = 10;
 let max_speed = 10;
 let paused = false;
 let show_trails = false;
+let turn_radius = 10;
 
-let new_boid_color = '#7777ff';
+let new_boid_color = '#ffffff';
+let random_colors = ['#ff7777', '#ff77ff', '#77ffff', '#7777ff', '#ffff77', '#77ff77'];
 
 class Boid {
-    constructor(x, y) {
+    constructor(x, y, c) {
         this.x = x;
         this.y = y;
 
@@ -37,16 +47,24 @@ class Boid {
         this.nvx = this.vx;
         this.nvy = this.vy;
 
-        this.color = color(new_boid_color);
+        this.color = color(c);
 
         this.trail = [];
         this.add_trail();
     }
 
-    tick() {        
+    add_force(fx, fy) {
+        this.nvx += fx;
+        this.nvy += fy;
+    }
+
+    tick() {
+        
+        // set apparent velocity
         this.vx = this.nvx;
         this.vy = this.nvy;
-        
+
+        // update position
         this.x += this.vx;
         this.y += this.vy;
 
@@ -145,23 +163,49 @@ function setup() {
         .addRange('View Distance', 0, 500, view_distance, 0.01, v => {view_distance = v;})
         .addColor('New Color', new_boid_color, v => {new_boid_color = v;})
 
-        .addButton('Add 25 Random Boids', random_boids)
+        .addRange('Turn Radius', 0, 360, turn_radius, 0.01, v => {turn_radius = v;})
+
+        .addButton('Add 25 Random Boids', () => {random_boids(25)})
         .addButton('Clear', clear_boids)
     
     boids = [];
 
-    for (let i = 0; i < 5; i++)
-        random_boids();
+    random_colors.forEach(c => {
+        random_boids(floor(starting_boid_count / random_colors.length), c);
+    });
+}
 
+function update_window_velocity() {
+    
+    // get current position
+    let curr_x = window.screenLeft;
+    let curr_y = window.screenTop;
+
+    // if there is a last position
+    if (last_window_x != null && last_window_y != null) {
+
+        // calculate the new velocity
+        window_vx = (curr_x - last_window_x) * -1;
+        window_vy = (curr_y - last_window_y) * -1;
+    }
+
+    // progress last
+    last_window_x = curr_x;
+    last_window_y = curr_y;
 }
 
 function clear_boids() {
     boids = [];
 }
 
-function random_boids() {
-    for (let i = 0; i < 25; i++) {
-        boids.push(new Boid(random(0,width), random(0,height)));
+function random_boids(n, c) {
+
+    // choose a random color if not provided
+    if (c == undefined) 
+        c = random(random_colors);
+
+    for (let i = 0; i < n; i++) {
+        boids.push(new Boid(random(0,width), random(0,height), c));
     }
 }
 
@@ -203,8 +247,7 @@ function rule_cohesion(boid) {
     ay *= cohesion * cohesion_coef;
 
     // add new velocity
-    boid.nvx += ax;
-    boid.nvy += ay;
+    boid.add_force(ax, ay);
 }
 
 function rule_separation(boid) {
@@ -235,9 +278,7 @@ function rule_separation(boid) {
     ay *= separation * separation_coef;
 
     // add new velocity
-    boid.nvx += ax;
-    boid.nvy += ay;
-
+    boid.add_force(ax, ay);
 }
 
 function rule_alignment(boid) {
@@ -275,8 +316,7 @@ function rule_alignment(boid) {
     ay *= alignment * alignment_coef;
 
     // add new velocity
-    boid.nvx += ax;
-    boid.nvy += ay;
+    boid.add_force(ax, ay);
 }
 
 function limit_velocity(boid) {
@@ -291,18 +331,22 @@ function apply_padding(boid) {
 
     // horizontal
     if (boid.x < padding_margin) {
-        boid.nvx += padding_acceleration;
+        boid.add_force(padding_acceleration, 0);
     } else if (boid.x > (width - padding_margin)) {
-        boid.nvx -= padding_acceleration;
+        boid.add_force(-padding_acceleration, 0);
     }
 
     // vertical
     if (boid.y < padding_margin) {
-        boid.nvy += padding_acceleration;
+        boid.add_force(0, padding_acceleration);
     } else if (boid.y > (height - padding_margin)) {
-        boid.nvy -= padding_acceleration;
+        boid.add_force(0, -padding_acceleration);
     }
 
+}
+
+function apply_window_velocity(boid) {
+    boid.add_force(window_vx * window_force_coef, window_vy * window_force_coef);
 }
 
 function mouseClicked(event) {
@@ -311,7 +355,7 @@ function mouseClicked(event) {
     if(event.target.tagName !== 'CANVAS')
         return;
 
-    boids.push(new Boid(mouseX, mouseY));
+    boids.push(new Boid(mouseX, mouseY, new_boid_color));
 }
 
 function keyPressed() {
@@ -331,8 +375,10 @@ function draw() {
         rule_alignment(b);
         limit_velocity(b);
         apply_padding(b);
+        apply_window_velocity(b);
     });
 
+    update_window_velocity();
     boids.forEach((b) => {
         if (!paused)
             b.tick();
