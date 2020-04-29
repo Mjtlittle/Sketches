@@ -9,6 +9,6 @@ def file_find_and_replace(file, old, new):
 
 name = input('> ').replace(' ', '_')
 title = name.replace('_', ' ').title()
-shutil.copytree('./src/template/', f'./src/{name}/')
-file_find_and_replace(f'./src/{name}/index.html', 'TEMPLATE_NAME', title)
-file_find_and_replace(f'./src/{name}/main.js', 'TEMPLATE_NAME', title)
+shutil.copytree('./src/template/', f'./src/_{name}/')
+file_find_and_replace(f'./src/_{name}/index.html', 'TEMPLATE_NAME', title)
+file_find_and_replace(f'./src/_{name}/main.js', 'TEMPLATE_NAME', title)
