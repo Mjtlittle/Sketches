@@ -1,14 +1,26 @@
 import shutil
+import sys
 
-def file_find_and_replace(file, old, new):
+def file_find_and_replace(file, patterns):
     with open(file, 'r') as f:
         data = f.read()
-    data = data.replace(old, new)
+    for old in patterns:
+        new = patterns[old]
+        data = data.replace(old, new)
     with open(file, 'w') as f:
         f.write(data)
 
-name = input('> ').replace(' ', '_')
+def copy_file(file, newfile):
+    shutil.copytree(file, newfile)
+
+
+name = '_'.join(sys.argv[1:])
 title = name.replace('_', ' ').title()
-shutil.copytree('./src/template/', f'./src/_{name}/')
-file_find_and_replace(f'./src/_{name}/index.html', 'TEMPLATE_NAME', title)
-file_find_and_replace(f'./src/_{name}/main.js', 'TEMPLATE_NAME', title)
+new_path = f'./src/{name}/'
+patterns = {
+    'TEMPLATE_NAME': title
+}
+
+copy_file('./src/template/', new_path)
+file_find_and_replace(f'{new_path}/index.html', patterns)
+file_find_and_replace(f'{new_path}/main.js', patterns)
