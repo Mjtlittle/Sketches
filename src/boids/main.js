@@ -1,4 +1,5 @@
 // referenced: http://www.kfish.org/boids/pseudocode.html
+// refined with: http://www.csc.kth.se/utbildning/kth/kurser/DD143X/dkand11/Group5Lars/carl-oscar.erneholm.report.pdf
 
 const cohesion_coef = 0.005;
 const separation_coef = 0.025;
@@ -41,11 +42,11 @@ class Boid {
         this.x = x;
         this.y = y;
 
-        this.vx = 0;
-        this.vy = 0;
+        this.velocity = 0;
+        this.angle = 0;
 
-        this.nvx = this.vx;
-        this.nvy = this.vy;
+        this.real_velocity = this.velocity;
+        this.real_angle = this.angle;
 
         this.color = color(c);
 
@@ -53,20 +54,12 @@ class Boid {
         this.add_trail();
     }
 
-    add_force(fx, fy) {
-        this.nvx += fx;
-        this.nvy += fy;
-    }
-
     tick() {
-        
-        // set apparent velocity
-        this.vx = this.nvx;
-        this.vy = this.nvy;
 
-        // update position
-        this.x += this.vx;
-        this.y += this.vy;
+        this.real_velocity = this.velocity;
+        this.real_angle = this.angle;
+        
+        this.
 
         this.add_trail();
     }
@@ -105,11 +98,8 @@ class Boid {
             this.trail.shift();
     }
 
-    speed() {
-        return abs(sqrt(
-            pow(this.vx, 2) + 
-            pow(this.vy, 2)
-        ));
+    steer_towards(tx, ty) {
+
     }
 
     draw() {
